@@ -1,0 +1,17 @@
+{
+  // MacroBuddy relay Worker. Read by @cloudflare/vite-plugin in dev (runs this
+  // inside Vite via workerd + miniflare) and by `wrangler deploy` in prod.
+  // The pad (Vite build) is served by the same Worker as static assets.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "macrobuddy-relay",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-06-01",
+  "assets": {
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "ROOM", "class_name": "Room" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }]
+}

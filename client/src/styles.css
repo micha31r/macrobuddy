@@ -1,0 +1,857 @@
+/* Geist, self-hosted: the pad must work without internet */
+@import '@fontsource-variable/geist';
+
+* {
+  box-sizing: border-box;
+}
+
+/* The pad is a tap surface — never selectable, no long-press callout (covers the
+   home-page demo too). The home page itself stays normally selectable. */
+.case {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+html {
+  height: 100%;
+}
+
+/* The app is a full-bleed, immovable surface; the home page is a normal
+   scrolling document. data-view (set in index.html + App.tsx) switches them. */
+html[data-view='app'] {
+  overflow: hidden;
+}
+
+html[data-view='app'],
+html[data-view='app'] body,
+html[data-view='app'] #root {
+  height: 100%;
+}
+
+button {
+  -webkit-user-drag: none;
+}
+
+/* ——— themes: warm charcoal dark / cool porcelain light ——— */
+
+:root {
+  --bg: #403b37;
+  --case: #1a1714;
+  --case-edge: #0e0c0a;
+  --key-face: #2b2723;
+  --key-edge: #15120f;
+  --key-text: #f4f1ed;
+  --dim: #a39c94;
+  --key-dish: rgba(0, 0, 0, 0.16);
+  --key-rim: rgba(255, 255, 255, 0.05);
+  --key-glint: rgba(255, 255, 255, 0.09);
+  --dish-bg: rgba(0, 0, 0, 0.08);
+  --dish-shadow: rgba(0, 0, 0, 0.22);
+  --dish-light: rgba(255, 255, 255, 0.13);
+  --case-dish-shadow: rgba(0, 0, 0, 0.26);
+  --case-dish-light: rgba(255, 255, 255, 0.04);
+  --grain-opacity: 0.07;
+  --glow-opacity: 0.5;
+  --switch-track: #272320;
+  --switch-knob: #f4f1ed;
+  --switch-icon: #272320;
+  --screw-hi: #4a4540;
+  --screw-face: #2b2723;
+  --screw-shadow: #0c0a08;
+  --screw-slot: #0e0c0a;
+  --led-off: #403a34;
+}
+
+[data-theme='light'] {
+  --bg: #c9cfd5;
+  --case: #eef1f3;
+  --case-edge: #b4bbc2;
+  --key-face: #ffffff;
+  --key-edge: #c4cad0;
+  --key-text: #3a4046;
+  --dim: #69727a;
+  --key-dish: rgba(0, 0, 0, 0.06);
+  --key-rim: rgba(255, 255, 255, 0);
+  --key-glint: rgba(255, 255, 255, 0.25);
+  --dish-bg: rgba(0, 0, 0, 0.04);
+  --dish-shadow: rgba(0, 0, 0, 0.1);
+  --dish-light: rgba(255, 255, 255, 0.3);
+  --case-dish-shadow: rgba(0, 0, 0, 0.09);
+  --case-dish-light: rgba(255, 255, 255, 0.3);
+  --grain-opacity: 0.1;
+  --glow-opacity: 0.5;
+  --switch-track: #aeb6bd;
+  --switch-knob: #ffffff;
+  --switch-icon: #69727a;
+  --screw-hi: #ffffff;
+  --screw-face: #d6dade;
+  --screw-shadow: #99a1a8;
+  --screw-slot: #8b939a;
+  --led-off: #c6ccd2;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--key-text);
+  font-family: 'Geist Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* app only: fixed + overflow hidden + touch-action none — no scrolling, no iOS
+   rubber-banding, no accidental swipes — a tap-only surface */
+html[data-view='app'] body {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* grain: untouchable texture overlay above everything */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: var(--grain-opacity);
+}
+
+html[data-view='app'] #root {
+  display: flex;
+  align-items: flex-start; /* the case's margin-top (set in JS) places it */
+  justify-content: center;
+  height: var(--vvh, 100%); /* the *visible* viewport (iOS toolbars) */
+  /* the nav is a pure overlay reserving no space; the case centers in the
+     full height via its JS margin-top, and carries its own bottom-edge gap */
+}
+
+.status {
+  color: var(--dim);
+  font-size: 16px;
+}
+
+/* wrong/expired key (or unreachable host): a flat centered message + a way home */
+.error-screen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: 24px;
+  text-align: center;
+}
+
+.error-screen__title {
+  margin: 0;
+  font-size: clamp(22px, 5vw, 30px); /* like the home heading, smaller */
+  font-weight: 600; /* never bold */
+  letter-spacing: -0.01em;
+}
+
+.error-screen__sub {
+  margin: 0;
+  max-width: 26em;
+  color: var(--dim);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* ——— flat top nav bar ——— */
+
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000; /* always above the pad */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: calc(48px + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+  transition: opacity 300ms ease;
+}
+
+/* chrome auto-hides on touch devices; tap the background to bring it back */
+.nav--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* project rule: never bold — 500 (medium) default, 600 (semibold) at most */
+.nav__brand {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--dim);
+}
+
+.nav__controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Apple-style theme switch (flat, no shadow) */
+.switch {
+  position: relative;
+  width: 50px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 15px;
+  background: var(--switch-track);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.switch__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--switch-knob);
+  color: var(--switch-icon);
+  transition: transform 150ms ease;
+}
+
+.switch[aria-checked='true'] .switch__knob {
+  transform: translateX(20px);
+}
+
+.switch__knob svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* flat fullscreen toggle */
+.nav__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--key-text);
+  cursor: pointer;
+}
+
+.nav__btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+.nav__btn--off {
+  opacity: 0.4;
+}
+
+/* transient hint shown when fullscreen isn't supported (iPhone Safari) */
+.nav__hint {
+  position: absolute;
+  top: 100%;
+  right: max(16px, env(safe-area-inset-right));
+  max-width: 280px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--case);
+  color: var(--dim);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* ——— the "case" ———
+   All geometry scales with the pad width (--pad-w, set inline by Pad.tsx)
+   so proportions are identical on a phone and a 27" monitor. */
+
+.case {
+  --edge: max(3px, calc(var(--pad-w) * 0.012));
+  position: relative;
+  touch-action: none; /* a press on the pad never scrolls the home page */
+  background: var(--case);
+  border-radius: calc(var(--pad-w) * 0.08);
+  /* the bottom "thickness" is a box-shadow (not layout) — reserve its height
+     (case edge 1.5% + button edge 1.2%) so the page's bottom gap is a
+     *visual* gap */
+  margin-bottom: calc(var(--pad-w) * 0.027);
+  /* grid sits --edge higher: the keys' bottom edges eat into the lower band */
+  padding: calc(var(--pad-w) * 0.075 - var(--edge)) calc(var(--pad-w) * 0.075)
+    calc(var(--pad-w) * 0.075 + var(--edge));
+  /* drop edge below + a slight dished surface (light offset ~30° like the keys) */
+  box-shadow:
+    0 max(3px, calc(var(--pad-w) * 0.015)) 0 var(--case-edge),
+    inset calc(var(--pad-w) * 0.006) calc(var(--pad-w) * 0.01) calc(var(--pad-w) * 0.03) var(--case-dish-shadow),
+    inset calc(var(--pad-w) * -0.004) calc(var(--pad-w) * -0.007) calc(var(--pad-w) * 0.022) var(--case-dish-light);
+}
+
+/* ——— RGB underglow: an "LED strip" wrapped around the back of the case ———
+   A tiny canvas (drawn by Glow.tsx) upscaled and blurred by CSS — additive
+   color blobs drift around the perimeter with randomized, wavy motion. */
+
+.glow {
+  position: absolute;
+  z-index: -1; /* behind the case background (.case creates no stacking context) */
+  top: 50%;
+  left: 50%;
+  width: 200%;
+  height: 200%;
+  transform: translate(-50%, -50%);
+  filter: blur(calc(var(--pad-w) * 0.05));
+  opacity: var(--glow-opacity);
+  pointer-events: none;
+}
+
+/* ——— "silkscreen" decals on the case edges ——— */
+
+.deco {
+  position: absolute;
+  color: var(--dim);
+  opacity: 0.55;
+  font-size: max(7px, calc(var(--pad-w) * 0.02));
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.deco--top {
+  top: calc(var(--pad-w) * 0.026);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--pad-w) * 0.014);
+}
+
+.deco--top svg {
+  width: calc(var(--pad-w) * 0.018);
+  height: auto;
+  fill: currentColor;
+}
+
+.deco--bottom {
+  bottom: calc(var(--pad-w) * 0.024);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* side texts read bottom-up like the hardware unit */
+.deco--left,
+.deco--right {
+  top: 50%;
+  writing-mode: vertical-rl;
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.deco--left {
+  left: calc(var(--pad-w) * 0.026);
+}
+
+.deco--right {
+  right: calc(var(--pad-w) * 0.026);
+}
+
+/* ——— corner screws ——— */
+
+.screw {
+  position: absolute;
+  width: calc(var(--pad-w) * 0.027);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--screw-hi), var(--screw-face) 55%, var(--screw-shadow) 100%);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.screw::after {
+  content: '';
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  top: 50%;
+  height: max(1px, calc(var(--pad-w) * 0.0028));
+  transform: translateY(-50%);
+  border-radius: 1px;
+  background: var(--screw-slot);
+}
+
+.screw--tl {
+  top: calc(var(--pad-w) * 0.04);
+  left: calc(var(--pad-w) * 0.04);
+  transform: rotate(24deg);
+}
+
+.screw--tr {
+  top: calc(var(--pad-w) * 0.04);
+  right: calc(var(--pad-w) * 0.04);
+  transform: rotate(-38deg);
+}
+
+.screw--bl {
+  bottom: calc(var(--pad-w) * 0.04);
+  left: calc(var(--pad-w) * 0.04);
+  transform: rotate(67deg);
+}
+
+.screw--br {
+  bottom: calc(var(--pad-w) * 0.04);
+  right: calc(var(--pad-w) * 0.04);
+  transform: rotate(-12deg);
+}
+
+/* ——— indicator LEDs: power always on, activity flashes on key press ——— */
+
+.leds {
+  position: absolute;
+  left: 25%;
+  bottom: calc(var(--pad-w) * 0.029);
+  display: flex;
+  gap: calc(var(--pad-w) * 0.014);
+}
+
+.led {
+  width: calc(var(--pad-w) * 0.013);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--led-off);
+  box-shadow:
+    inset 0 1px 1px rgba(0, 0, 0, 0.35),
+    0 1px 0 rgba(255, 255, 255, 0.07);
+  transition: background 80ms ease, box-shadow 80ms ease;
+}
+
+/* connection status: green = backend reachable, red = unreachable */
+.led--status {
+  background: #46d07c;
+  box-shadow: 0 0 calc(var(--pad-w) * 0.012) rgba(70, 208, 124, 0.8);
+}
+
+.led--status.led--down {
+  background: #e5484d;
+  box-shadow: 0 0 calc(var(--pad-w) * 0.012) rgba(229, 72, 77, 0.85);
+}
+
+.led--activity.led--on {
+  background: #ffb02e;
+  box-shadow: 0 0 calc(var(--pad-w) * 0.012) rgba(255, 176, 46, 0.9);
+}
+
+.grid {
+  display: grid; /* track sizes + gap are set inline (explicit px, no fr) */
+}
+
+/* ——— keys: a static darker "edge" slab with the face button on top.
+   Pressing translates the face down over the edge — transform is the only
+   animated property (animating box-shadow is janky on iOS WebKit). ——— */
+
+.keycell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.keycell--circle {
+  width: auto;
+  height: 100%;
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+
+.key__edge {
+  position: absolute;
+  inset: 0;
+  transform: translateY(var(--edge));
+  border-radius: calc(var(--pad-w) * 0.045);
+  background: var(--key-color-edge, var(--key-edge));
+}
+
+.keycell--circle .key__edge {
+  border-radius: 50%;
+}
+
+.key {
+  position: relative; /* paints above the edge slab */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: calc(var(--pad-w) * 0.045);
+  background-color: var(--key-color, var(--key-face));
+  /* per-key noise texture over a soft radial ambient */
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 50% 45%, var(--key-dish) 0%, rgba(0, 0, 0, 0) 62%, var(--key-rim) 100%);
+  color: var(--key-text);
+  font: inherit;
+  cursor: pointer;
+  /* static bottom-right glint — the press never animates this */
+  box-shadow: inset calc(var(--pad-w) * -0.004) calc(var(--pad-w) * -0.004) calc(var(--pad-w) * 0.008)
+    var(--key-glint);
+  /* translate3d keeps WebKit on the compositor; 130ms is the release */
+  transform: translate3d(0, 0, 0);
+  transition: transform 130ms ease-out;
+  will-change: transform;
+}
+
+/* the molded indent: always fully rounded (circle on square keys, pill on
+   wide ones), with the light direction tilted ~30° so it doesn't look too
+   tidy — prominent dark inner shadow, faint light catch opposite */
+.key::before {
+  content: '';
+  position: absolute;
+  /* absolute inset so the key→dish padding is identical on all sides,
+     even on wide keys (a % inset would scale with width) */
+  inset: calc(var(--pad-w) * 0.025);
+  border-radius: 9999px;
+  background: var(--dish-bg);
+  box-shadow:
+    inset calc(var(--pad-w) * 0.0045) calc(var(--pad-w) * 0.008) calc(var(--pad-w) * 0.024) var(--dish-shadow),
+    inset calc(var(--pad-w) * -0.0025) calc(var(--pad-w) * -0.0045) calc(var(--pad-w) * 0.016) var(--dish-light);
+  pointer-events: none;
+}
+
+.keycell--circle .key {
+  border-radius: 50%;
+}
+
+.key--pressed {
+  transform: translate3d(0, var(--edge), 0);
+  transition-duration: 90ms; /* press is snappier than release */
+}
+
+/* modifier keys: a small corner dot at rest, a glowing ring while engaged */
+.key__mod-dot {
+  position: absolute;
+  top: 12%;
+  right: 12%;
+  width: calc(var(--pad-w) * 0.018);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.45;
+}
+
+.key--armed {
+  box-shadow:
+    inset calc(var(--pad-w) * -0.004) calc(var(--pad-w) * -0.004) calc(var(--pad-w) * 0.008) var(--key-glint),
+    0 0 0 calc(var(--pad-w) * 0.01) #3273f5,
+    0 0 calc(var(--pad-w) * 0.04) #3273f5;
+}
+
+/* engaged: a lit light-blue indicator (white was invisible on light-mode keys) */
+.key--armed .key__mod-dot {
+  opacity: 1;
+  background: #6cb6ff;
+  box-shadow: 0 0 calc(var(--pad-w) * 0.012) #6cb6ff;
+}
+
+.key__icon {
+  position: relative; /* above the dish */
+  width: 36%;
+  height: auto;
+  opacity: 0.5;
+}
+
+/* sized off the pad width so labels scale with it */
+.key__label {
+  position: relative; /* above the dish */
+  font-size: clamp(12px, calc(var(--pad-w) * 0.05), 60px);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* ——— home / landing page (the keyless URL) — flat, centered column ——— */
+
+.home {
+  --home-max: 780px;
+  min-height: 100%;
+  /* clip the demo pad's glow bleed horizontally so it can't overflow the page;
+     `clip` (not `hidden`) doesn't create a scroll container → sticky nav is fine */
+  overflow-x: clip;
+}
+
+.home-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  /* the bg fills the safe-area/notch strip above the content, so the cutout area
+     is covered and scrolling content doesn't show through above the bar */
+  padding-top: env(safe-area-inset-top);
+  background: var(--bg);
+}
+
+.home-nav__inner {
+  max-width: var(--home-max);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 64px;
+  padding: 0 max(24px, env(safe-area-inset-right)) 0 max(24px, env(safe-area-inset-left));
+}
+
+.home-nav__right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* flat filled pill — no shadow */
+.home-cta {
+  border: 0;
+  cursor: pointer;
+  background: var(--key-text);
+  color: var(--bg);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 9px 16px;
+  border-radius: 10px;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--key-text);
+}
+
+.logo__mark {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.logo__word {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.home-main {
+  max-width: var(--home-max);
+  margin: 0 auto;
+  padding: 8px max(24px, env(safe-area-inset-right)) calc(96px + env(safe-area-inset-bottom))
+    max(24px, env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
+  gap: 64px;
+}
+
+.home-hero {
+  padding-top: 40px;
+  text-align: center;
+}
+
+.home-hero__title {
+  margin: 0 0 16px;
+  font-size: clamp(30px, 7vw, 46px);
+  font-weight: 600; /* never bold */
+  line-height: 1.16;
+  letter-spacing: -0.02em;
+}
+
+.home-hero__sub {
+  margin: 0 auto;
+  max-width: 30em;
+  color: var(--dim);
+  font-size: clamp(15px, 2.6vw, 18px);
+  line-height: 1.55;
+}
+
+.home-demo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+/* the ref box the demo pad measures; the case centers inside it */
+.pad-demo {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.home-demo__hint {
+  margin: 0;
+  color: var(--dim);
+  font-size: 14px;
+}
+
+.home-steps ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.home-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.home-steps__n {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--case);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.home-steps h3 {
+  margin: 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.home-steps p {
+  margin: 0;
+  color: var(--dim);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.setup h2 {
+  margin: 0 0 12px;
+  font-size: clamp(22px, 4.5vw, 28px);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.setup h3 {
+  margin: 28px 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+}
+
+.setup p {
+  margin: 0 0 10px;
+  color: var(--dim);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.setup a {
+  color: #3273f5;
+  text-decoration: none;
+}
+
+/* command block: a relative wrapper (owns the spacing + copy button) around a
+   horizontally-scrollable <pre>, so the button stays put when the code scrolls */
+.setup__cmd {
+  position: relative;
+  margin: 16px 0; /* equal gap above and below */
+}
+
+.setup__cmd pre {
+  margin: 0;
+  padding: 14px 48px 14px 16px; /* right room for the copy button */
+  border-radius: 12px;
+  background: var(--case);
+  overflow-x: auto;
+}
+
+.setup__cmd code,
+.setup code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  color: var(--key-text);
+}
+
+.setup__cmd code {
+  white-space: pre;
+}
+
+.setup__copy {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%); /* vertically centered in the code block */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--key-text) 9%, transparent);
+  color: var(--dim);
+  cursor: pointer;
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.setup__copy:hover {
+  color: var(--key-text);
+  background: color-mix(in srgb, var(--key-text) 14%, transparent);
+}
+
+.setup__copy svg {
+  width: 16px;
+  height: 16px;
+}
+
+.setup__os {
+  font-size: 13px;
+}
+
+.setup__os code {
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.setup__note {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.home-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 28px;
+  border-top: 1px solid color-mix(in srgb, var(--dim) 28%, transparent);
+  color: var(--dim);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.home-foot .logo {
+  opacity: 0.85;
+}

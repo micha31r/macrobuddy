@@ -1,0 +1,14 @@
+{
+  "name": "MacroBuddy",
+  "short_name": "MacroBuddy",
+  "description": "Turn your phone into a customisable digital macro pad.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#403b37",
+  "theme_color": "#403b37",
+  "icons": [
+    { "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any" },
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any maskable" }
+  ]
+}

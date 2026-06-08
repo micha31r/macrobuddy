@@ -1,0 +1,25 @@
+{
+  "name": "macrobuddy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,green \"cross-env MACROBUDDY_SECRET=macrobuddy-dev MACROBUDDY_DEV_URL=http://localhost:5173 npm run dev -w server\" \"npm run dev -w client\"",
+    "dev:relay": "concurrently -n server,client -c blue,green \"cross-env MACROBUDDY_SECRET=macrobuddy-dev MACROBUDDY_DEV_URL=http://localhost:5173 MACROBUDDY_RELAY_APP_URL=http://localhost:5173 npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client",
+    "start": "npm run start -w server",
+    "deploy": "npm run deploy -w client",
+    "test": "npm run test -w shared && npm run test -w server && npm run test -w client",
+    "typecheck": "tsc -p shared --noEmit && tsc -p server --noEmit && tsc -p client --noEmit && tsc -p client/tsconfig.worker.json --noEmit"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3",
+    "cross-env": "^10.1.0",
+    "typescript": "^6.0.3"
+  }
+}

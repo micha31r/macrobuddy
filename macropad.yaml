@@ -1,0 +1,81 @@
+# MacroBuddy pad config — a starter template.
+#
+# Every button below is wired to `{ type: none }` (does nothing yet). Replace
+# each with a real action to make it do something:
+#
+#   action: { type: hotkey, keys: "cmd+c" }                     # press a hotkey
+#   action: { type: script, run: bash,   path: ./scripts/x.sh } # run a script
+#   action: { type: script, run: python, path: ./scripts/x.py, args: ["hi"] }
+#   action: { type: none }                                      # placeholder
+#
+# `cmd` is OS-agnostic: ⌘ on macOS, Ctrl on Windows. Edit this file while the
+# server runs and re-focus the pad on your phone to pick up changes.
+#
+# Two sections:
+#   keys   — what each button looks like + where it sits. Every real key needs a
+#            unique numeric `id`; `spacer: true` = empty cell; `modifier: true` =
+#            a combo root. `icon` is a heroicons (24/solid) name; `shape` is
+#            square (default) or circle; `colSpan`/`rowSpan` default to 1.
+#   macros — what happens. One id = a single key with `on: tap | double | hold`
+#            (default tap). Many ids = a combo: one modifier + one or more normal
+#            keys held together (no `on`). Last definition wins on conflict.
+#
+# A modifier key engages combos when tapped or held; its tap/hold can't have
+# their own action, but its double-tap can.
+#
+# Timing (ms): comboWindow collects combo keys; doubleTapWindow is the
+# double-tap gap (and how long a tapped modifier stays armed); holdThreshold is
+# the hold duration. Pressing a key always sounds + animates instantly — only
+# the action waits on these.
+
+comboWindow: 150
+doubleTapWindow: 250
+holdThreshold: 350
+
+layout:
+  cols: 4
+  rows: 4
+
+keys:
+  # row 1
+  - { id: 1, icon: clipboard, color: "#3273f5", col: 1, row: 1 }
+  - { id: 2, icon: scissors, col: 2, row: 1 }
+  - { id: 3, icon: magnifying-glass, col: 3, row: 1 }
+  - { id: 4, icon: cog-6-tooth, modifier: true, col: 4, row: 1 } # modifier (combo root)
+  # row 2
+  - { id: 5, icon: play, color: "#2fb344", col: 1, row: 2 }
+  - { id: 6, icon: pause, col: 2, row: 2 }
+  - { id: 7, icon: rocket-launch, color: "#8b5cf6", col: 3, row: 2 }
+  - { id: 8, icon: bolt, color: "#f5a623", col: 4, row: 2 }
+  # row 3
+  - { id: 9, icon: command-line, col: 1, row: 3 }
+  - { id: 10, icon: code-bracket, col: 2, row: 3 }
+  - { id: 11, icon: beaker, col: 3, row: 3 }
+  - { spacer: true, col: 4, row: 3 }
+  # row 4
+  - { id: 13, icon: arrow-uturn-left, col: 1, row: 4 }
+  - { id: 14, icon: arrow-uturn-right, col: 2, row: 4 }
+  - { id: 15, icon: speaker-wave, col: 3, row: 4 }
+  - { id: 16, icon: heart, color: "#e5484d", shape: circle, col: 4, row: 4 }
+
+macros:
+  # Every button → no-op. Replace `{ type: none }` with a real action (above).
+  - { keys: [1], action: { type: none } }
+  - { keys: [2], action: { type: none } }
+  - { keys: [3], action: { type: none } }
+  - { keys: [5], action: { type: none } }
+  - { keys: [6], action: { type: none } }
+  - { keys: [7], action: { type: none } }
+  - { keys: [8], action: { type: none } }
+  - { keys: [9], action: { type: none } }
+  - { keys: [10], action: { type: none } }
+  - { keys: [11], action: { type: none } }
+  - { keys: [13], action: { type: none } }
+  - { keys: [14], action: { type: none } }
+  - { keys: [15], action: { type: none } }
+  - { keys: [16], action: { type: none } }
+
+  # The modifier (key 4): double-tap is its own action; tap/hold engage combos.
+  - { keys: [4], on: double, action: { type: none } }
+  # Example combo — engage the modifier (4), then press another key:
+  - { keys: [4, 1], action: { type: none } }
