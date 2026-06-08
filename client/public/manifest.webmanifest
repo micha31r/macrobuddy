@@ -1,7 +1,7 @@
 {
   "name": "MacroBuddy",
   "short_name": "MacroBuddy",
-  "description": "Turn your phone into a customisable digital macro pad.",
+  "description": "Turn your phone into a customisable macro pad.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#403b37",

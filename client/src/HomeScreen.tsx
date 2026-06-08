@@ -66,7 +66,7 @@ export default function HomeScreen({ theme, onToggleTheme }: { theme: Theme; onT
           <Logo />
           <div className="home-nav__right">
             <button type="button" className="home-cta" onClick={toSetup}>
-              Set up the host
+              Host Setup
             </button>
             <ThemeSwitch theme={theme} onToggle={onToggleTheme} />
           </div>
@@ -75,7 +75,7 @@ export default function HomeScreen({ theme, onToggleTheme }: { theme: Theme; onT
 
       <main className="home-main">
         <section className="home-hero">
-          <h1 className="home-hero__title">Turn your phone into a customisable digital macro pad.</h1>
+          <h1 className="home-hero__title">Turn your phone into a customisable macro pad.</h1>
           <p className="home-hero__sub">
             Tap a key here and your computer runs it — a keyboard shortcut, a script, anything. Over your Wi-Fi, or
             anywhere in the world.
