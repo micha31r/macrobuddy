@@ -185,19 +185,18 @@ needs Node 22/24 LTS (see Development).
 1. **Build:** `npm run build` — emits the pad (`client/dist/client`) + the Worker
    (`client/dist/macrobuddy_relay`).
 2. **Sign in (once):** `cd client && npx wrangler login`.
-3. **Ship it:** `npm run deploy` (= `wrangler deploy` from `client/`) → note the
-   URL it prints, `https://macrobuddy-relay.<you>.workers.dev`.
-4. **Run the host pointed at it:**
+3. **Ship it:** `npm run deploy` (= `wrangler deploy` from `client/`). The Worker
+   serves the pad + relay at your domain (production: `https://macrobuddy.dev`).
+4. **Run the host:** `npm start` — it connects to `https://macrobuddy.dev` by
+   default, so both QRs print (the gray LAN one at home, the purple live one
+   anywhere). Point it elsewhere with `MACROBUDDY_RELAY_APP_URL=https://…`, or set
+   it empty (`MACROBUDDY_RELAY_APP_URL=`) for LAN-only.
 
-   ```sh
-   MACROBUDDY_RELAY_APP_URL=https://macrobuddy-relay.<you>.workers.dev npm start
-   ```
-
-   Both QRs now print — scan the LAN one at home, the relay one anywhere.
-
-For the home page's one-command setup (`uv run …/setup.py`) to resolve, also
-`git push` the repo to `github.com/<you>/macrobuddy` (update the slug in
-`setup.py` and `client/src/HomeScreen.tsx` if yours differs).
+The home page's one-command install is served from the app itself
+(`uv run https://macrobuddy.dev/setup.py` → `client/public/setup.py`); the script
+clones the public repo at `github.com/micha31r/macrobuddy`. Forking? Change the
+`https://macrobuddy.dev` default in `server/src/index.ts`, the install URL in
+`client/src/HomeScreen.tsx`, and `REPO` in `client/public/setup.py`.
 
 ## Security
 

@@ -7,9 +7,10 @@ import Pad from './Pad';
 import ThemeSwitch from './ThemeSwitch';
 
 // One command sets up + starts the host. `uv` is a single static binary, and
-// `uv run <url>` fetches and runs the setup script with no pre-install.
-// Repo defaults to micha31r/macrobuddy — change in one place if it moves.
-const SETUP_CMD = 'uv run https://raw.githubusercontent.com/micha31r/macrobuddy/main/setup.py';
+// `uv run <url>` fetches and runs the setup script with no pre-install. The
+// script is served from the app's own domain (the Worker serves /setup.py as a
+// static asset, from client/public/setup.py).
+const SETUP_CMD = 'uv run https://macrobuddy.dev/setup.py';
 const UV_MAC = 'curl -LsSf https://astral.sh/uv/install.sh | sh';
 const UV_WIN = 'powershell -c "irm https://astral.sh/uv/install.ps1 | iex"';
 

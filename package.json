@@ -9,8 +9,8 @@
     "client"
   ],
   "scripts": {
-    "dev": "concurrently -n server,client -c blue,green \"cross-env MACROBUDDY_SECRET=macrobuddy-dev MACROBUDDY_DEV_URL=http://localhost:5173 npm run dev -w server\" \"npm run dev -w client\"",
-    "dev:relay": "concurrently -n server,client -c blue,green \"cross-env MACROBUDDY_SECRET=macrobuddy-dev MACROBUDDY_DEV_URL=http://localhost:5173 MACROBUDDY_RELAY_APP_URL=http://localhost:5173 npm run dev -w server\" \"npm run dev -w client\"",
+    "dev": "concurrently -n server,client -c blue,green \"cross-env MACROBUDDY_SECRET=macrobuddy-dev MACROBUDDY_RELAY_APP_URL= npm run dev -w server\" \"cross-env MACROBUDDY_SECRET=macrobuddy-dev npm run dev -w client\"",
+    "dev:relay": "concurrently -n server,client -c blue,green \"cross-env MACROBUDDY_SECRET=macrobuddy-dev MACROBUDDY_RELAY_APP_URL=http://localhost:5173 npm run dev -w server\" \"cross-env MACROBUDDY_SECRET=macrobuddy-dev npm run dev -w client\"",
     "build": "npm run build -w client",
     "start": "npm run start -w server",
     "deploy": "npm run deploy -w client",

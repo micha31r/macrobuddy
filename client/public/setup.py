@@ -6,10 +6,10 @@ MacroBuddy host setup — get the code, install, build, and start the server.
 
 Run it with uv (no Python setup needed — uv fetches and runs this script):
 
-    uv run https://raw.githubusercontent.com/micha31r/macrobuddy/main/setup.py
+    uv run https://macrobuddy.dev/setup.py
 
 It clones/updates the repo to ~/macrobuddy, then runs `npm install`,
-`npm run build`, and `npm start`. The server prints a QR code — scan it with
+`npm run build`, and `npm start`. The server prints QR codes — scan one with
 your phone to open your pad.
 """
 
@@ -52,7 +52,7 @@ def main() -> None:
     run([npm, "install"], cwd=DEST)
     run([npm, "run", "build"], cwd=DEST)
 
-    print("\nStarting MacroBuddy — scan the QR code below with your phone (same Wi-Fi).\n")
+    print("\nStarting MacroBuddy — scan a QR code below with your phone.\n")
     run([npm, "start"], cwd=DEST)
 
 

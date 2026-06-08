@@ -1,8 +1,9 @@
+import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { deriveLanToken, encodeSecret, randomSecret } from '@macrobuddy/shared';
 import { ConfigStore } from './config.js';
-import { printRelayBanner, printStartupBanner } from './net.js';
+import { listen, printRelayBanner, printStartupBanner } from './net.js';
 import { startRelayClient } from './relay.js';
 import { createApp } from './server.js';
 
@@ -43,18 +44,30 @@ function isLoopback(url: string): boolean {
   }
 }
 
-createApp(store, clientDist).listen(port, '0.0.0.0', async () => {
+const app = createApp(store, clientDist);
+void (async () => {
+  let server;
+  try {
+    // Smart bind: if `port` is taken, step to the next free port instead of crashing.
+    server = await listen(app, port, '0.0.0.0');
+  } catch (err) {
+    console.error(`[server] could not bind a free port near ${port}: ${(err as Error).message}`);
+    process.exit(1);
+  }
+  const actualPort = (server.address() as AddressInfo).port;
+  if (actualPort !== port) console.log(`[server] port ${port} was busy — using ${actualPort}`);
+
   console.log(`[server] config: ${configPath}`);
-  printStartupBanner(port, secretB64);
+  printStartupBanner(actualPort, secretB64);
 
-  // Convenience: the keyed URL on the Vite origin (hot reload) for `npm run dev`.
-  const devUrl = process.env.MACROBUDDY_DEV_URL?.trim();
-  if (devUrl) console.log(`  With hot reload (dev): ${devUrl.replace(/\/$/, '')}/#${secretB64}\n`);
+  // (In `npm run dev` the keyed hot-reload URL is printed by Vite itself, using
+  // its own actual port — see client/vite.config.ts.)
 
-  // Remote access (relay) is opt-in: set MACROBUDDY_RELAY_APP_URL to the public
-  // host that serves the pad + runs the relay (a deployed Cloudflare Worker). It
-  // shares the same secret as LAN, so either QR opens the pad.
-  const appUrl = process.env.MACROBUDDY_RELAY_APP_URL?.trim();
+  // Remote access (relay): the host dials OUT to the public Worker that serves
+  // the pad + runs the relay, so the pad works on any network. Defaults to the
+  // production host; override with MACROBUDDY_RELAY_APP_URL (set it empty for
+  // LAN-only). `npm run dev` sets it empty so dev never touches production.
+  const appUrl = (process.env.MACROBUDDY_RELAY_APP_URL ?? 'https://macrobuddy.dev').trim();
   if (appUrl) {
     const relayWsUrl = process.env.MACROBUDDY_RELAY_WS?.trim() || appUrl.replace(/^http/, 'ws');
 
@@ -78,5 +91,8 @@ createApp(store, clientDist).listen(port, '0.0.0.0', async () => {
     } catch (err) {
       console.error(`[relay] failed to start: ${(err as Error).message}`);
     }
+  } else {
+    // Relay disabled (MACROBUDDY_RELAY_APP_URL empty — e.g. `npm run dev`). Local frontend only.
+    console.log('\x1b[90m  Global frontend off (remote access disabled) — showing the local one only.\x1b[0m\n');
   }
-});
+})();
